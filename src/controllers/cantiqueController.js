@@ -1,5 +1,6 @@
 const Cantique = require('../models/Cantique');
 const Langue = require('../models/Langue');
+const { deleteAudioFile } = require('../utils/audioFiles');
 
 function normalizeLangue(name) {
   if (typeof name !== 'string') return '';
@@ -46,6 +47,55 @@ function sanitizeRefrain(raw) {
   const text = typeof raw.text === 'string' ? raw.text : '';
   return text ? { text } : null;
 }
+
+function sanitizeAudioFields(body = {}) {
+  const payload = {};
+  const explicitRemoval = body.audioUrl === null || body.audioUrl === '';
+  const hasAudio = explicitRemoval ? false : Boolean(body.hasAudio || body.audio || body.audioUrl);
+  payload.hasAudio = hasAudio;
+  payload.audio = hasAudio;
+
+  if (typeof body.audioUrl === 'string' && body.audioUrl.trim()) {
+    payload.audioUrl = body.audioUrl.trim();
+    payload.hasAudio = true;
+    payload.audio = true;
+  } else if (explicitRemoval) {
+    payload.audioUrl = null;
+    payload.audioFileName = null;
+    payload.audioMimeType = null;
+    payload.hasAudio = false;
+    payload.audio = false;
+  }
+
+  if (typeof body.audioFileName === 'string') {
+    payload.audioFileName = body.audioFileName.trim();
+  }
+
+  if (typeof body.audioMimeType === 'string') {
+    payload.audioMimeType = body.audioMimeType.trim();
+  }
+
+  return payload;
+}
+
+exports.uploadAudio = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Aucun fichier audio fourni' });
+    }
+
+    const audioUrl = `/api/uploads/audio/${req.file.filename}`;
+    res.status(201).json({
+      hasAudio: true,
+      audio: true,
+      audioUrl,
+      audioFileName: req.file.originalname,
+      audioMimeType: req.file.mimetype,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 exports.getAll = async (req, res, next) => {
   try {
@@ -97,6 +147,7 @@ exports.create = async (req, res, next) => {
       langue,
       couplets: sanitizeCouplets(req.body?.couplets),
       refrain: sanitizeRefrain(req.body?.refrain),
+      ...sanitizeAudioFields(req.body),
     };
 
     // numéro de cantique : 1,2,3... premier arrivé, premier servi.
@@ -124,9 +175,25 @@ exports.update = async (req, res, next) => {
     if (langue !== undefined) updatePayload.langue = langue;
     if (req.body?.couplets !== undefined) updatePayload.couplets = sanitizeCouplets(req.body.couplets);
     if (req.body?.refrain !== undefined) updatePayload.refrain = sanitizeRefrain(req.body.refrain);
+    if (
+      req.body?.audioUrl !== undefined ||
+      req.body?.audioFileName !== undefined ||
+      req.body?.audioMimeType !== undefined ||
+      req.body?.hasAudio !== undefined ||
+      req.body?.audio !== undefined
+    ) {
+      Object.assign(updatePayload, sanitizeAudioFields(req.body));
+    }
+
+    const existing = await Cantique.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Not found' });
 
     const updated = await Cantique.findByIdAndUpdate(req.params.id, updatePayload, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Not found' });
+    const nextAudioUrl = updatePayload.audioUrl !== undefined ? updatePayload.audioUrl : existing.audioUrl;
+    if (existing.audioUrl && existing.audioUrl !== nextAudioUrl) {
+      deleteAudioFile(existing.audioUrl);
+    }
+
     await ensureLangueExists(updated.langue);
     res.json(updated);
   } catch (err) {
@@ -138,6 +205,9 @@ exports.remove = async (req, res, next) => {
   try {
     const removed = await Cantique.findByIdAndDelete(req.params.id);
     if (!removed) return res.status(404).json({ message: 'Not found' });
+    if (removed.audioUrl) {
+      deleteAudioFile(removed.audioUrl);
+    }
     res.json({ message: 'Deleted' });
   } catch (err) {
     next(err);
