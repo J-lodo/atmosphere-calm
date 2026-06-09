@@ -3,22 +3,29 @@
   "version": "1.0.0",
   "description": "Backend API for Atmosphere app (cantiques management)",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node src/index.js",
+    "start": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint .",
-    "build": "rm -rf php && cd ../clients && npm run build && cp -r build ../backend"
+    "build": "cd ../clients && GENERATE_SOURCEMAP=false REACT_APP_API_URL=/api REACT_APP_USE_MOCK=false npm run build && rm -rf ../backend/build && cp -r build ../backend/build"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.3.4"
+    "mongoose": "^7.3.4",
+    "multer": "^2.1.1"
   },
   "devDependencies": {
     "eslint": "^8.49.0",

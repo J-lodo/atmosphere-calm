@@ -14,6 +14,11 @@ const CantiqueSchema = new mongoose.Schema({
   refrain: {
     text: String,
   },
+  hasAudio: { type: Boolean, default: false },
+  audio: { type: Boolean, default: false },
+  audioUrl: { type: String },
+  audioFileName: { type: String },
+  audioMimeType: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Cantique', CantiqueSchema);
