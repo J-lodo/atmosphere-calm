@@ -10,7 +10,7 @@
     "start": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint .",
-    "build": "cd ../clients && GENERATE_SOURCEMAP=false REACT_APP_API_URL=/api REACT_APP_USE_MOCK=false npm run build && rm -rf ../backend/build && cp -r build ../backend/build"
+    "build": "cd ../clients && npm ci --omit=dev && GENERATE_SOURCEMAP=false REACT_APP_API_URL=/api REACT_APP_USE_MOCK=false npm run build && rm -rf build && cp -r ../clients/build ./build"
   },
   "author": "",
   "license": "MIT",
