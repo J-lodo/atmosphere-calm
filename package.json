@@ -10,7 +10,8 @@
     "start": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint .",
-    "build": "cd ../clients && npm ci --omit=dev && GENERATE_SOURCEMAP=false REACT_APP_API_URL=/api REACT_APP_USE_MOCK=false npm run build && rm -rf build && cp -r ../clients/build ./build"
+    "build": "node scripts/build-frontend.js",
+    "postinstall": "node -e \"const fs=require('fs');if(fs.existsSync('build/index.html')){console.log('✅ Build frontend présent');}else{console.warn('⚠️  Pas de build frontend');}\""
   },
   "author": "",
   "license": "MIT",

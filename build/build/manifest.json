@@ -1,0 +1,15 @@
+{
+  "short_name": "Atmosphere",
+  "name": "Atmosphère-ALCM — Cantiques",
+  "icons": [
+    {
+      "src": "cross.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a56db",
+  "background_color": "#ffffff"
+}
