@@ -124,7 +124,7 @@ const seedAdmin = async () => {
 
   if (!email || !password) {
     if (isProduction) {
-      console.warn('ADMIN_EMAIL / ADMIN_PASSWORD non définis — aucun compte admin initial créé.');
+      console.warn('ADMIN_EMAIL / ADMIN_PASSWORD non définis — aucun compte admin synchronisé.');
     }
     return;
   }
@@ -134,10 +134,15 @@ const seedAdmin = async () => {
     if (!existing) {
       const admin = new User({ username: email, password });
       await admin.save();
-      console.log(`Compte admin initial créé : ${email}`);
+      console.log(`Compte admin créé : ${email}`);
+      return;
     }
+
+    existing.password = password;
+    await existing.save();
+    console.log(`Mot de passe admin synchronisé pour : ${email}`);
   } catch (error) {
-    console.error('Erreur lors de la création du compte admin', error);
+    console.error('Erreur lors de la synchronisation du compte admin', error);
   }
 };
 
