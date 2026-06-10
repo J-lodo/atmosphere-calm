@@ -2,20 +2,25 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 
+const CLOUD_ENABLED = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+
 const uploadDir = path.join(__dirname, '../../uploads/audio');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || '') || '.webm';
-    const safeName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, safeName);
-  },
-});
+// Choose storage based on environment: memory for cloud, disk for local
+const storage = CLOUD_ENABLED
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, uploadDir),
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname || '') || '.webm';
+        const safeName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+        cb(null, safeName);
+      },
+    });
 
 const upload = multer({
   storage,
