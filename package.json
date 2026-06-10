@@ -10,8 +10,7 @@
     "start": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
     "lint": "eslint .",
-    "build": "node scripts/build-frontend.js",
-    "postinstall": "node -e \"const fs=require('fs');if(fs.existsSync('build/index.html')){console.log('✅ Build frontend présent');}else{console.warn('⚠️  Pas de build frontend — exécutez npm run build');}\""
+    "build": "rm -rf build && cd ../clients && npm run build && cp -r build ../backend"
   },
   "author": "",
   "license": "MIT",
