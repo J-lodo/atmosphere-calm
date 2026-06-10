@@ -11,7 +11,7 @@
     "dev": "nodemon src/index.js",
     "lint": "eslint .",
     "build": "node scripts/build-frontend.js",
-    "postinstall": "node -e \"const fs=require('fs');if(fs.existsSync('build/index.html')){console.log('✅ Build frontend présent');}else{console.warn('⚠️  Pas de build frontend');}\""
+    "postinstall": "node -e \"const fs=require('fs');if(fs.existsSync('build/index.html')){console.log('✅ Build frontend présent');}else{console.warn('⚠️  Pas de build frontend — exécutez npm run build');}\""
   },
   "author": "",
   "license": "MIT",
