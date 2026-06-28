@@ -47,14 +47,7 @@ execSync('npm run build', {
     ...process.env,
     GENERATE_SOURCEMAP: 'false',
     REACT_APP_API_URL: '/api',
-    REACT_APP_USE_MOCK: 'false',
-  },
-});
-
-const sourceBuild = path.join(clientsDir, 'build');
-const targetBuild = path.join(backendDir, 'build');
-
-if (!fs.existsSync(path.join(sourceBuild, 'index.html'))) {
+      REACT_APP_USE_MOCK: process.env.REACT_APP_USE_MOCK === 'true' ? 'true' : 'false',
   console.error('❌ Build React invalide (index.html manquant).');
   process.exit(1);
 }

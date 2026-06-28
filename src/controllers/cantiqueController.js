@@ -84,6 +84,52 @@ exports.uploadAudio = async (req, res, next) => {
       return res.status(400).json({ message: 'Aucun fichier audio fourni' });
     }
 
+    const CLOUD_ENABLED = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+
+    if (CLOUD_ENABLED && req.file && req.file.buffer) {
+      // Upload buffer to Cloudinary using data URI
+      const cloudinary = require('cloudinary').v2;
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+
+      const base64 = req.file.buffer.toString('base64');
+      const dataUri = `data:${req.file.mimetype};base64,${base64}`;
+
+      // determine desired name from form data (filename/title) or originalname
+      const desired = (req.body && (req.body.filename || req.body.title || req.body.name)) || req.file.originalname || `${Date.now()}`;
+      // sanitize to remove extension and unsafe chars
+      const sanitize = (s) => String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-z0-9-_]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 200) || `${Date.now()}`;
+      const publicId = sanitize(desired);
+      const folder = (process.env.CLOUDINARY_FOLDER || 'atmosphere/audio').replace(/^\/+|\/+$/g, '');
+
+      const uploadResult = await cloudinary.uploader.upload(dataUri, {
+        resource_type: 'auto',
+        folder,
+        public_id: publicId,
+        use_filename: true,
+        unique_filename: false,
+        overwrite: true,
+      });
+
+      return res.status(201).json({
+        hasAudio: true,
+        audio: true,
+        audioUrl: uploadResult.secure_url,
+        audioFileName: req.file.originalname,
+        audioMimeType: req.file.mimetype,
+      });
+    }
+
+    // fallback: disk-stored file (existing behavior)
     const audioUrl = `/api/uploads/audio/${req.file.filename}`;
     res.status(201).json({
       hasAudio: true,
