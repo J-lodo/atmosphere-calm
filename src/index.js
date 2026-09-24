@@ -35,7 +35,26 @@ app.use(cors({
 }));
 app.use(bodyParser.json({ limit: '2mb' }));
 
-app.use('/api/uploads', express.static(path.join(uploadsPath)));
+app.use('/api/uploads', express.static(path.join(uploadsPath), {
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const audioMimeTypes = {
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.webm': 'audio/webm',
+      '.ogg': 'audio/ogg',
+      '.m4a': 'audio/mp4',
+      '.aac': 'audio/aac',
+      '.flac': 'audio/flac',
+      '.mp4': 'audio/mp4',
+      '.mpeg': 'audio/mpeg',
+    };
+
+    if (audioMimeTypes[ext]) {
+      res.setHeader('Content-Type', audioMimeTypes[ext]);
+    }
+  },
+}));
 
 app.get('/api/health', (_req, res) => {
   const dbState = mongoose.connection.readyState;
@@ -148,17 +167,32 @@ const seedAdmin = async () => {
 
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
-  console.log(`Serveur démarré sur le port ${port} (${process.env.NODE_ENV || 'development'})`);
-  console.log(`Frontend build : ${hasFrontendBuild ? 'présent' : 'absent'}`);
+const startServer = () => {
+  const server = app.listen(port, () => {
+    console.log(`Serveur démarré sur le port ${port} (${process.env.NODE_ENV || 'development'})`);
+    console.log(`Frontend build : ${hasFrontendBuild ? 'présent' : 'absent'}`);
 
-  connectDB()
-    .then(async () => {
-      console.log('MongoDB connecté');
-      await seedAdmin();
-    })
-    .catch((error) => {
-      console.error('⚠️  MongoDB indisponible — le frontend reste accessible, l\'API est hors service.');
-      console.error(error.message);
-    });
-});
+    connectDB()
+      .then(async () => {
+        console.log('MongoDB connecté');
+        await seedAdmin();
+      })
+      .catch((error) => {
+        console.error('⚠️  MongoDB indisponible — le frontend reste accessible, l\'API est hors service.');
+        console.error(error.message);
+      });
+  });
+
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      console.error(`⚠️  Port ${port} déjà utilisé. Arrêt du démarrage.`);
+      process.exit(1);
+      return;
+    }
+
+    console.error(error);
+    process.exit(1);
+  });
+};
+
+startServer();
