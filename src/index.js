@@ -8,17 +8,20 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
-const { isProduction, validateEnv, getAllowedOrigins } = require('./config/env');
+const {
+  isProduction, validateEnv, getAllowedOrigins, getTrustProxy,
+} = require('./config/env');
 const connectDB = require('./config/db');
 const cantiqueRoutes = require('./routes/cantiqueRoutes');
 const langueRoutes = require('./routes/langueRoutes');
 const authRoutes = require('./routes/authRoutes');
+const visitorRoutes = require('./routes/visitorRoutes');
 const User = require('./models/User');
 
 validateEnv();
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', getTrustProxy());
 
 const buildPath = path.join(__dirname, '../build');
 const uploadsPath = path.join(__dirname, '../uploads');
@@ -71,6 +74,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cantiques', cantiqueRoutes);
 app.use('/api/langues', langueRoutes);
+app.use('/api/visitors', visitorRoutes);
 
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
