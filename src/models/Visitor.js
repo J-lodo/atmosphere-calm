@@ -11,7 +11,15 @@ const VisitorSchema = new mongoose.Schema({
     os: { type: String, default: '' },
     browser: { type: String, default: '' },
   },
-  // No IP address is stored. GPS is only stored after the visitor explicitly accepted, once.
+  // Approximate place from the network (IP lookup); the IP address itself is not stored.
+  location: {
+    country: { type: String, default: null },
+    countryCode: { type: String, default: null },
+    region: { type: String, default: null },
+    city: { type: String, default: null },
+    isPrivate: { type: Boolean, default: false },
+  },
+  // GPS is only stored after the visitor explicitly accepted, once.
   gpsConsent: { type: String, enum: ['granted', 'denied', null], default: null },
   gps: {
     lat: { type: Number, default: null },
