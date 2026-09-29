@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 // Approximate location (country, region, city) from an IP address, via ipwho.is (free, no key).
-// The IP itself is only kept in this in-memory cache, never in the database.
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const cache = new Map();
 
