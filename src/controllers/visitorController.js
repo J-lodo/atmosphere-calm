@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Visitor = require('../models/Visitor');
 const { parseUserAgent } = require('../utils/userAgent');
 const { lookupIp, normalizeIp } = require('../utils/geoip');
@@ -8,6 +9,19 @@ const ONLINE_WINDOW_MS = 150 * 1000;
 const VISITOR_ID = /^[A-Za-z0-9-]{8,64}$/;
 
 const toNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+const toText = (value, max) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null);
+
+// Place reverse geocoded by the visitor's own browser (Nominatim), sent with the position.
+function readPlace(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const place = {
+    city: toText(raw.city, 120),
+    region: toText(raw.region, 120),
+    country: toText(raw.country, 120),
+    countryCode: toText(raw.countryCode, 2)?.toUpperCase() || null,
+  };
+  return place.city || place.country ? place : null;
+}
 
 function readGps(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -24,6 +38,7 @@ function readGps(raw) {
     region: null,
     country: null,
     countryCode: null,
+    ...readPlace(raw.place),
   };
 }
 
@@ -96,7 +111,7 @@ exports.heartbeat = async (req, res, next) => {
         await Visitor.updateOne({ _id: visitor._id }, { $set: { location, locatedIp: ip } });
       }
     }
-    if (newGps) await fillGpsPlace(visitor._id, newGps.lat, newGps.lng);
+    if (newGps && !newGps.city) await fillGpsPlace(visitor._id, newGps.lat, newGps.lng);
     return undefined;
   } catch (err) {
     if (res.headersSent) {
@@ -148,6 +163,28 @@ exports.list = async (req, res, next) => {
       },
       visitors: rows,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.remove = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: 'Identifiant invalide' });
+    }
+    const { deletedCount } = await Visitor.deleteOne({ _id: req.params.id });
+    if (!deletedCount) return res.status(404).json({ message: 'Visiteur introuvable' });
+    return res.json({ deleted: deletedCount });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.removeAll = async (_req, res, next) => {
+  try {
+    const { deletedCount } = await Visitor.deleteMany({});
+    res.json({ deleted: deletedCount });
   } catch (err) {
     next(err);
   }

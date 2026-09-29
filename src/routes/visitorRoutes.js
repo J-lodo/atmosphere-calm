@@ -16,5 +16,7 @@ const heartbeatLimiter = rateLimit({
 router.post('/heartbeat', heartbeatLimiter, visitorController.heartbeat);
 router.get('/', authMiddleware, visitorController.list);
 router.get('/ip-check', authMiddleware, visitorController.ipCheck);
+router.delete('/', authMiddleware, visitorController.removeAll);
+router.delete('/:id', authMiddleware, visitorController.remove);
 
 module.exports = router;
