@@ -21,6 +21,7 @@ const VisitorSchema = new mongoose.Schema({
   },
   // IP for which `location` was resolved, to avoid repeated lookups.
   locatedIp: { type: String, default: null },
+  locationVersion: { type: Number, default: 0 },
   // GPS is only stored after the visitor explicitly accepted, once.
   gpsConsent: { type: String, enum: ['granted', 'denied', null], default: null },
   gps: {

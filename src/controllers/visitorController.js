@@ -7,6 +7,8 @@ const { reverseGeocode } = require('../utils/reverseGeocode');
 // A visitor is "online" when its last heartbeat is more recent than this.
 const ONLINE_WINDOW_MS = 150 * 1000;
 const VISITOR_ID = /^[A-Za-z0-9-]{8,64}$/;
+// Bump when the IP location provider changes, so stored places are looked up again.
+const LOCATION_VERSION = 2;
 
 const toNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const toText = (value, max) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null);
@@ -105,10 +107,10 @@ exports.heartbeat = async (req, res, next) => {
 
     res.status(204).end();
 
-    if (visitor.locatedIp !== ip) {
+    if (visitor.locatedIp !== ip || visitor.locationVersion !== LOCATION_VERSION) {
       const location = await lookupIp(ip);
       if (location) {
-        await Visitor.updateOne({ _id: visitor._id }, { $set: { location, locatedIp: ip } });
+        await Visitor.updateOne({ _id: visitor._id }, { $set: { location, locatedIp: ip, locationVersion: LOCATION_VERSION } });
       }
     }
     if (newGps && !newGps.city) await fillGpsPlace(visitor._id, newGps.lat, newGps.lng);

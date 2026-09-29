@@ -29,6 +29,7 @@ Will connect to MongoDB using environment variable `MONGODB_URI`.
   - Render (ou tout hébergement avec un seul reverse proxy) : `TRUST_PROXY=1`, valeur par défaut quand `NODE_ENV=production`.
   - Développement : défaut `loopback` (seul le proxy CRA local est cru ; un client du réseau ne peut pas usurper son IP).
   - Contrôle après déploiement : `GET /api/visitors/ip-check` (admin) affiche l'IP retenue, la chaîne `X-Forwarded-For` et le réglage. Si l'IP affichée est celle du proxy, augmenter `TRUST_PROXY` (par ex. `2`).
-- Localisation approximative par IP : `https://ipwho.is` (HTTPS, sans clé, cache 24 h).
+- Ville par IP (affichée même sans GPS) : `https://api.db-ip.com/v2/free` (HTTPS, sans clé, 1000 requêtes/jour), secours `https://ipwho.is` ; cache 24 h.
+  Changer de fournisseur : incrémenter `LOCATION_VERSION` (contrôleur) pour relocaliser les fiches existantes.
 - Ville GPS (seulement après consentement) : trouvée par le navigateur du visiteur et envoyée avec la position ; à défaut, géocodage inverse côté serveur par Nominatim (HTTPS, User-Agent identifié via `NOMINATIM_CONTACT`, 1 requête/s max, cache).
 - Conservation : les visiteurs inactifs sont supprimés après `VISITOR_RETENTION_DAYS` jours (90 par défaut, index TTL MongoDB).
