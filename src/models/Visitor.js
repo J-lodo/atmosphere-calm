@@ -5,13 +5,13 @@ const RETENTION_DAYS = Number(process.env.VISITOR_RETENTION_DAYS) || 90;
 // One document per browser (visitorId is a random id kept in the browser's localStorage).
 const VisitorSchema = new mongoose.Schema({
   visitorId: { type: String, required: true, unique: true },
+  ip: { type: String, default: null },
   userAgent: { type: String, default: '' },
   device: {
     kind: { type: String, default: 'desktop' }, // 'mobile' | 'tablet' | 'desktop'
     os: { type: String, default: '' },
     browser: { type: String, default: '' },
   },
-  // Approximate place from the network (IP lookup); the IP address itself is not stored.
   location: {
     country: { type: String, default: null },
     countryCode: { type: String, default: null },
@@ -19,6 +19,8 @@ const VisitorSchema = new mongoose.Schema({
     city: { type: String, default: null },
     isPrivate: { type: Boolean, default: false },
   },
+  // IP for which `location` was resolved, to avoid repeated lookups.
+  locatedIp: { type: String, default: null },
   // GPS is only stored after the visitor explicitly accepted, once.
   gpsConsent: { type: String, enum: ['granted', 'denied', null], default: null },
   gps: {

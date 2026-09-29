@@ -35,9 +35,7 @@ async function fetchPlace(lat, lng) {
     timeout: 8000,
   });
   const a = data?.address || {};
-  // City-provinces (e.g. Kinshasa): OSM tags the quarter as `city` and the real city as `municipality`.
-  const cityProvince = a.municipality && a.municipality === a.state ? a.municipality : null;
-  const city = cityProvince || a.city || a.town || a.village || a.municipality || a.city_district || a.county || null;
+  const city = a.city || a.town || a.village || a.municipality || a.city_district || a.county || null;
   if (!city && !a.country) return null;
   return {
     city,

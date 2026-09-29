@@ -16,7 +16,6 @@ const cantiqueRoutes = require('./routes/cantiqueRoutes');
 const langueRoutes = require('./routes/langueRoutes');
 const authRoutes = require('./routes/authRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
-const { purgeIpData } = require('./controllers/visitorController');
 const User = require('./models/User');
 
 validateEnv();
@@ -181,7 +180,6 @@ const startServer = () => {
       .then(async () => {
         console.log('MongoDB connecté');
         await seedAdmin();
-        await purgeIpData().catch((error) => console.error('Purge IP visiteurs', error));
       })
       .catch((error) => {
         console.error('⚠️  MongoDB indisponible — le frontend reste accessible, l\'API est hors service.');

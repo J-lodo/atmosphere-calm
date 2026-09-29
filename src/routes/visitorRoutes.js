@@ -5,7 +5,6 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Keyed on req.ip in memory only; the IP is never stored.
 const heartbeatLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
@@ -16,7 +15,6 @@ const heartbeatLimiter = rateLimit({
 
 router.post('/heartbeat', heartbeatLimiter, visitorController.heartbeat);
 router.get('/', authMiddleware, visitorController.list);
-router.delete('/', authMiddleware, visitorController.removeAll);
-router.delete('/:id', authMiddleware, visitorController.remove);
+router.get('/ip-check', authMiddleware, visitorController.ipCheck);
 
 module.exports = router;

@@ -24,10 +24,10 @@ Will connect to MongoDB using environment variable `MONGODB_URI`.
 ## Visiteurs (admin)
 
 - `POST /api/visitors/heartbeat` (public, limité) enregistre la présence ; `GET /api/visitors` (admin) liste les visiteurs.
-- `DELETE /api/visitors/:id` et `DELETE /api/visitors` (admin, JWT) suppriment une visite ou toutes.
-- Aucune adresse IP n'est enregistrée. `req.ip` (réglé par `TRUST_PROXY`, `1` par défaut en production) sert, en mémoire, à la limitation de débit et à la localisation approximative.
-  Au démarrage, les anciens champs `ip` et `locatedIp` sont retirés des fiches existantes (`$unset`).
-- Ville et pays estimés par le réseau pour chaque visiteur, même sans GPS : `https://ipwho.is` (HTTPS, sans clé, cache mémoire 24 h). Seul le lieu est enregistré.
-- Position précise : GPS du téléphone, seulement après consentement.
+- IP du client : `req.ip` d'Express, réglé par `TRUST_PROXY`. `X-Forwarded-For` n'est pris en compte que s'il vient d'un proxy de confiance.
+  - Render (ou tout hébergement avec un seul reverse proxy) : `TRUST_PROXY=1`, valeur par défaut quand `NODE_ENV=production`.
+  - Développement : défaut `loopback` (seul le proxy CRA local est cru ; un client du réseau ne peut pas usurper son IP).
+  - Contrôle après déploiement : `GET /api/visitors/ip-check` (admin) affiche l'IP retenue, la chaîne `X-Forwarded-For` et le réglage. Si l'IP affichée est celle du proxy, augmenter `TRUST_PROXY` (par ex. `2`).
+- Localisation approximative par IP : `https://ipwho.is` (HTTPS, sans clé, cache 24 h).
 - Ville GPS (seulement après consentement) : géocodage inverse par Nominatim (HTTPS, User-Agent identifié via `NOMINATIM_CONTACT`, 1 requête/s max, cache).
 - Conservation : les visiteurs inactifs sont supprimés après `VISITOR_RETENTION_DAYS` jours (90 par défaut, index TTL MongoDB).
