@@ -2,6 +2,7 @@ const Visitor = require('../models/Visitor');
 const mongoose = require('mongoose');
 const { parseUserAgent } = require('../utils/userAgent');
 const { reverseGeocode } = require('../utils/reverseGeocode');
+const { lookupIp } = require('../utils/geoip');
 
 // A visitor is "online" when its last heartbeat is more recent than this.
 const ONLINE_WINDOW_MS = 150 * 1000;
@@ -89,6 +90,12 @@ exports.heartbeat = async (req, res, next) => {
 
     res.status(204).end();
 
+    // Network-based city/country, known before (and regardless of) the GPS answer.
+    const location = await lookupIp(req.ip);
+    const stored = visitor.location || {};
+    if (location && ['country', 'countryCode', 'region', 'city', 'isPrivate'].some((k) => (stored[k] ?? null) !== (location[k] ?? null))) {
+      await Visitor.updateOne({ _id: visitor._id }, { $set: { location } });
+    }
     if (newGps) await fillGpsPlace(visitor._id, newGps.lat, newGps.lng);
     return undefined;
   } catch (err) {
@@ -107,7 +114,10 @@ exports.list = async (req, res, next) => {
       Visitor.find().sort({ lastSeen: -1 }).limit(500).lean(),
       Visitor.countDocuments(),
       Visitor.countDocuments({ lastSeen: { $gte: new Date(now - 24 * 60 * 60 * 1000) } }),
-      Visitor.distinct('gps.countryCode', { 'gps.countryCode': { $ne: null } }),
+      Promise.all([
+        Visitor.distinct('gps.countryCode', { 'gps.countryCode': { $ne: null } }),
+        Visitor.distinct('location.countryCode', { 'location.countryCode': { $ne: null } }),
+      ]).then(([gps, net]) => [...new Set([...gps, ...net])]),
       Visitor.countDocuments({ gpsConsent: 'granted', 'gps.lat': { $ne: null } }),
     ]);
 
@@ -119,6 +129,7 @@ exports.list = async (req, res, next) => {
     const rows = visitors.map((v) => ({
       id: v._id,
       device: v.device,
+      location: v.location?.city || v.location?.country || v.location?.isPrivate ? v.location : null,
       gpsConsent: v.gpsConsent,
       gps: v.gps?.lat != null ? v.gps : null,
       currentPath: v.currentPath,
@@ -166,18 +177,12 @@ exports.removeAll = async (_req, res, next) => {
   }
 };
 
-// IP addresses and IP-based locations are no longer collected: strip them from older documents.
+// IP addresses are never stored: strip them from older documents.
 exports.purgeIpData = async () => {
   const { modifiedCount } = await Visitor.collection.updateMany(
-    {
-      $or: [
-        { ip: { $exists: true } },
-        { location: { $exists: true } },
-        { locatedIp: { $exists: true } },
-      ],
-    },
-    { $unset: { ip: '', location: '', locatedIp: '' } }
+    { $or: [{ ip: { $exists: true } }, { locatedIp: { $exists: true } }] },
+    { $unset: { ip: '', locatedIp: '' } }
   );
-  if (modifiedCount) console.log(`Visiteurs : IP et localisation IP retirées de ${modifiedCount} fiche(s)`);
+  if (modifiedCount) console.log(`Visiteurs : adresses IP retirées de ${modifiedCount} fiche(s)`);
   return modifiedCount;
 };
