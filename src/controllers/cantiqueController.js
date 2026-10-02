@@ -1,6 +1,7 @@
 const Cantique = require('../models/Cantique');
 const Langue = require('../models/Langue');
 const { deleteAudioFile } = require('../utils/audioFiles');
+const { planRenumber, applyRenumber, closeGap } = require('../utils/renumber');
 
 function normalizeLangue(name) {
   if (typeof name !== 'string') return '';
@@ -254,7 +255,25 @@ exports.remove = async (req, res, next) => {
     if (removed.audioUrl) {
       deleteAudioFile(removed.audioUrl);
     }
-    res.json({ message: 'Deleted' });
+    const shifted = await closeGap(removed.number);
+    res.json({ message: 'Deleted', number: removed.number ?? null, shifted });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.renumberPreview = async (_req, res, next) => {
+  try {
+    res.json(await planRenumber());
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.renumber = async (_req, res, next) => {
+  try {
+    const { total, changes } = await applyRenumber();
+    res.json({ total, changed: changes.length });
   } catch (err) {
     next(err);
   }

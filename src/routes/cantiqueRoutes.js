@@ -6,6 +6,8 @@ const uploadAudio = require('../middleware/uploadAudio');
 
 router.get('/', cantiqueController.getAll);
 router.post('/audio', authMiddleware, uploadAudio.single('audio'), cantiqueController.uploadAudio);
+router.get('/renumber', authMiddleware, cantiqueController.renumberPreview);
+router.post('/renumber', authMiddleware, cantiqueController.renumber);
 router.get('/:id', cantiqueController.getOne);
 router.post('/', authMiddleware, cantiqueController.create);
 router.put('/:id', authMiddleware, cantiqueController.update);
