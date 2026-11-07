@@ -5,9 +5,11 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
+// Une assemblée ouvre souvent l’application derrière la même adresse IP,
+// et chaque téléphone redemande l’annonce en cours. Le plafond reste haut.
 const activeLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Trop de requêtes.' },
