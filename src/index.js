@@ -16,7 +16,9 @@ const cantiqueRoutes = require('./routes/cantiqueRoutes');
 const langueRoutes = require('./routes/langueRoutes');
 const authRoutes = require('./routes/authRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
 const User = require('./models/User');
+const { seedFirstAnnouncement } = require('./controllers/announcementController');
 
 validateEnv();
 
@@ -75,6 +77,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cantiques', cantiqueRoutes);
 app.use('/api/langues', langueRoutes);
 app.use('/api/visitors', visitorRoutes);
+app.use('/api/annonces', announcementRoutes);
 
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
@@ -180,6 +183,7 @@ const startServer = () => {
       .then(async () => {
         console.log('MongoDB connecté');
         await seedAdmin();
+        await seedFirstAnnouncement();
       })
       .catch((error) => {
         console.error('⚠️  MongoDB indisponible — le frontend reste accessible, l\'API est hors service.');
