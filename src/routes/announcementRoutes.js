@@ -29,6 +29,7 @@ router.get('/', authMiddleware, announcementController.list);
 router.post('/', authMiddleware, announcementController.create);
 router.put('/:id', authMiddleware, announcementController.update);
 router.post('/:id/lancer', authMiddleware, announcementController.launch);
+router.post('/:id/programmer', authMiddleware, announcementController.schedule);
 router.post('/:id/arreter', authMiddleware, announcementController.stop);
 router.delete('/:id', authMiddleware, announcementController.remove);
 

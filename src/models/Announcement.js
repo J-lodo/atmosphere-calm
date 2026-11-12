@@ -7,11 +7,14 @@ const AnnouncementSchema = new mongoose.Schema({
   whatsappNumber: { type: String, default: '', maxlength: 32 },
   status: {
     type: String,
-    enum: ['draft', 'active', 'stopped'],
+    enum: ['draft', 'scheduled', 'active', 'stopped'],
     default: 'draft',
   },
   // Une seule valeur « live » à la fois : index unique partiel.
   activeSlot: { type: String },
+  startsAt: { type: Date },
+  endsAt: { type: Date },
+  timezone: { type: String, default: '', maxlength: 64 },
   launchedAt: { type: Date },
   stoppedAt: { type: Date },
 }, { timestamps: true });
