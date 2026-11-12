@@ -19,6 +19,7 @@ const visitorRoutes = require('./routes/visitorRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const User = require('./models/User');
 const { seedFirstAnnouncement } = require('./controllers/announcementController');
+const { syncSchedules } = require('./utils/schedule');
 
 validateEnv();
 
@@ -184,6 +185,12 @@ const startServer = () => {
         console.log('MongoDB connecté');
         await seedAdmin();
         await seedFirstAnnouncement();
+        await syncSchedules();
+        setInterval(() => {
+          syncSchedules().catch((error) => {
+            console.error('Annonces programmées', error.message);
+          });
+        }, 30 * 1000);
       })
       .catch((error) => {
         console.error('⚠️  MongoDB indisponible — le frontend reste accessible, l\'API est hors service.');

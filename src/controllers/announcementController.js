@@ -7,6 +7,7 @@ const {
   normalizeWhatsappNumber,
   isInternationalWhatsappNumber,
 } = require('../utils/whatsappNumber');
+const { readSchedule, hasScheduleFields, syncSchedules, isValidTimeZone } = require('../utils/schedule');
 
 const SEED_KEY = 'repertoire-cantiques';
 const SEED_TITLE = 'Aidez-nous à enrichir le répertoire de cantiques';
@@ -16,7 +17,7 @@ Nous souhaitons enrichir le répertoire d’Atmosphère pour que toute l’assem
 
 Merci pour votre aide. Que Dieu vous bénisse !`;
 
-const STATUS_ORDER = { active: 0, draft: 1, stopped: 2 };
+const STATUS_ORDER = { active: 0, scheduled: 1, draft: 2, stopped: 3 };
 
 const presentAdmin = (doc) => ({
   id: String(doc._id),
@@ -24,6 +25,9 @@ const presentAdmin = (doc) => ({
   body: doc.body || '',
   whatsappNumber: doc.whatsappNumber || '',
   status: doc.status,
+  startsAt: doc.startsAt || null,
+  endsAt: doc.endsAt || null,
+  timezone: doc.timezone || '',
   launchedAt: doc.launchedAt || null,
   stoppedAt: doc.stoppedAt || null,
   createdAt: doc.createdAt || null,
@@ -105,6 +109,7 @@ exports.seedFirstAnnouncement = async () => {
 
 exports.active = async (req, res, next) => {
   try {
+    await syncSchedules();
     const doc = await Announcement.findOne({ status: 'active' }).sort({ launchedAt: -1 });
     if (!doc) return res.json({ announcement: null, dismissed: false });
 
@@ -123,6 +128,7 @@ exports.active = async (req, res, next) => {
 
 exports.list = async (_req, res, next) => {
   try {
+    await syncSchedules();
     const docs = await Announcement.find().sort({ updatedAt: -1 });
     docs.sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9));
     return res.json({ announcements: docs.map(presentAdmin) });
@@ -160,6 +166,13 @@ exports.update = async (req, res, next) => {
     doc.title = title;
     doc.body = body;
     doc.whatsappNumber = whatsappNumber;
+    if (hasScheduleFields(req.body)) {
+      const schedule = readSchedule(req.body);
+      doc.startsAt = schedule.startsAt;
+      doc.endsAt = schedule.endsAt;
+      doc.timezone = schedule.timezone;
+      if (doc.status === 'scheduled' && !schedule.startsAt) doc.status = 'draft';
+    }
     await doc.save();
     return res.json({ announcement: presentAdmin(doc) });
   } catch (err) {
@@ -201,11 +214,47 @@ exports.launch = async (req, res, next) => {
   }
 };
 
+exports.schedule = async (req, res, next) => {
+  try {
+    const doc = await findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: 'Annonce introuvable' });
+    if (doc.status === 'active') {
+      return res.status(400).json({ message: 'Arrêtez l’annonce avant de la programmer' });
+    }
+    if (!doc.title.trim() || !doc.body.trim()) {
+      return res.status(400).json({ message: 'Le titre et le texte sont requis pour programmer l’annonce' });
+    }
+    if (!isInternationalWhatsappNumber(doc.whatsappNumber)) {
+      return res.status(400).json({ message: 'Indiquez un numéro WhatsApp au format international avant de programmer' });
+    }
+    if (!doc.startsAt || !isValidTimeZone(doc.timezone)) {
+      return res.status(400).json({ message: 'Indiquez un début et un fuseau horaire' });
+    }
+    if (doc.startsAt.getTime() <= Date.now()) {
+      return res.status(400).json({ message: 'La date de début doit être dans le futur. Pour une diffusion immédiate, utilisez Lancer.' });
+    }
+    if (doc.endsAt && doc.endsAt.getTime() <= doc.startsAt.getTime()) {
+      return res.status(400).json({ message: 'La fin doit être après le début.' });
+    }
+
+    await Announcement.updateOne(
+      { _id: doc._id },
+      { $set: { status: 'scheduled' }, $unset: { activeSlot: 1, stoppedAt: 1 } },
+    );
+    const fresh = await Announcement.findById(doc._id);
+    return res.json({ announcement: presentAdmin(fresh) });
+  } catch (err) {
+    return next(err);
+  }
+};
+
 exports.stop = async (req, res, next) => {
   try {
     const doc = await findById(req.params.id);
     if (!doc) return res.status(404).json({ message: 'Annonce introuvable' });
-    if (doc.status !== 'active') return res.json({ announcement: presentAdmin(doc) });
+    if (doc.status !== 'active' && doc.status !== 'scheduled') {
+      return res.json({ announcement: presentAdmin(doc) });
+    }
 
     await Announcement.updateOne(
       { _id: doc._id },
